@@ -24,7 +24,6 @@ export default function GameRoom({ roomId, player }: GameRoomProps) {
   const socketRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [world, setWorld] = useState<any>({});
   const [connected, setConnected] = useState(false);
   const [players, setPlayers] = useState<any[]>([]);
 
@@ -65,7 +64,6 @@ export default function GameRoom({ roomId, player }: GameRoomProps) {
         setMessages(prev => [...prev, { type: "ai", text: aiResponse }]);
       }
       
-      setWorld(worldState);
       setPlayers(Object.values(worldState.players || {}));
     });
 
