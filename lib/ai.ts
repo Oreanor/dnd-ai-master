@@ -36,6 +36,64 @@ function extractSceneSection(text: string): string {
   return text;
 }
 
+export function generateWelcomeContext(worldState: any): string {
+  const { context, locations } = worldState;
+  const currentLocation = locations[context.currentLocation];
+  
+  return `
+Вы находитесь в ${currentLocation.name}.
+${currentLocation.desc}
+
+Опиши эту локацию кратко и атмосферно (максимум 3-4 предложения). Создай погружение в мир D&D. Опиши что видит игрок, какие звуки слышит, какие запахи чувствует. Будь конкретным и лаконичным.
+  `.trim();
+}
+
+export function generateAIContext(playerName: string, action: string, worldState: any): string {
+  const { context, locations } = worldState;
+  const currentLocation = locations[context.currentLocation];
+  
+  // Создаем краткий контекст только с последними изменениями
+  const recentEvents = context.recentEvents.slice(-3); // Только последние 3 события
+  const recentEventsText = recentEvents.length > 0 
+    ? `Последние действия: ${recentEvents.map((e: any) => `${e.player}: ${e.action} (${e.success ? 'успех' : 'неудача'})`).join(', ')}`
+    : '';
+  
+  // Текущее состояние НПС
+  const npcState = currentLocation.npcs.map((npc: any) => 
+    `${npc.name}: HP ${npc.hp}/${npc.hp + (12 - npc.hp)}`
+  ).join(', ');
+  
+  return `
+Текущая сцена: ${context.currentScene}
+${recentEventsText}
+Состояние НПС: ${npcState}
+
+Игрок ${playerName} делает действие: "${action}".
+
+Развивай ситуацию на основе этого действия (максимум 2-3 предложения). Не повторяй описание сцены, а покажи что происходит дальше. Будь кратким, динамичным и конкретным. Избегай длинных описаний.
+  `.trim();
+}
+
+function truncateResponse(text: string, maxLength: number = 500): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  
+  // Обрезаем до последнего полного предложения
+  const truncated = text.substring(0, maxLength);
+  const lastSentenceEnd = Math.max(
+    truncated.lastIndexOf('.'),
+    truncated.lastIndexOf('!'),
+    truncated.lastIndexOf('?')
+  );
+  
+  if (lastSentenceEnd > maxLength * 0.7) {
+    return truncated.substring(0, lastSentenceEnd + 1);
+  }
+  
+  return truncated + '...';
+}
+
 export async function callAI(prompt: string): Promise<string> {
   if (!cohere) {
     console.warn("[AI] COHERE_API_KEY is not set; returning fallback text.");
@@ -58,11 +116,20 @@ export async function callAI(prompt: string): Promise<string> {
 
     for (const model of candidates) {
       try {
-        const response = await cohere.chat({ model, message: prompt });
+        const response = await cohere.chat({ 
+          model, 
+          message: prompt,
+          maxTokens: 200, // Ограничиваем количество токенов
+          temperature: 0.7 // Добавляем немного креативности, но не слишком много
+        });
         const raw = extractTextFromCohereResponse(response);
         const text = extractSceneSection(raw);
         console.log("[AI] Extracted text length:", text.length);
-        if (text) return text;
+        if (text) {
+          const truncated = truncateResponse(text);
+          console.log("[AI] Truncated text length:", truncated.length);
+          return truncated;
+        }
       } catch (err: unknown) {
         let status: number | string | undefined;
         let msg: string;

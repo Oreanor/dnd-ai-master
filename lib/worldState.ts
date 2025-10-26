@@ -11,6 +11,13 @@ interface LogEntry {
   success: boolean;
 }
 
+interface GameContext {
+  currentScene: string;
+  lastAIResponse: string;
+  recentEvents: LogEntry[];
+  currentLocation: string;
+}
+
 export const worldState = {
     locations: {
       forge: {
@@ -23,6 +30,13 @@ export const worldState = {
       yard: { name: "Двор кузни", desc: "Разбитая телега", connections: ["forge"], npcs: [], items: [] }
     },
     players: {} as Record<string, Player>,
-    log: [] as LogEntry[]
+    log: [] as LogEntry[],
+    context: {
+      currentScene: "Вы находитесь в заброшенной кузнице. В углу стоит страж, который смотрит на вас с подозрением.",
+      lastAIResponse: "",
+      recentEvents: [] as LogEntry[],
+      currentLocation: "forge"
+    } as GameContext,
+    isLocationGenerated: false // Флаг для отслеживания генерации локации
   };
   

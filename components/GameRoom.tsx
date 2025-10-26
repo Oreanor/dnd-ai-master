@@ -60,7 +60,7 @@ export default function GameRoom({ roomId, player }: GameRoomProps) {
       console.log("AI Response length:", aiResponse.length);
       console.log("AI Response preview:", aiResponse.substring(0, 200) + "...");
       
-      // Добавляем ответ ИИ только если он не пустой
+      // Добавляем ответ DND Master только если он не пустой
       if (aiResponse && aiResponse.trim()) {
         setMessages(prev => [...prev, { type: "ai", text: aiResponse }]);
       }
@@ -131,12 +131,12 @@ export default function GameRoom({ roomId, player }: GameRoomProps) {
                 m.type === "system" 
                   ? "bg-blue-100 text-blue-800" 
                   : m.type === "player"
-                  ? "bg-purple-100 text-purple-800"
+                  ? "bg-gray-100 text-gray-700"
                   : "bg-green-100 text-green-800"
               }`}
             >
               <span className="font-semibold">
-                {m.type === "system" ? "Система" : m.type === "player" ? (m.playerName || "Вы") : "ИИ"}:
+                {m.type === "system" ? "Система" : m.type === "player" ? (m.playerName || "Вы") : "DND Master"}:
               </span> {m.text}
             </div>
           ))}
