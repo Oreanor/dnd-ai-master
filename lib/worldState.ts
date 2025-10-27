@@ -1,33 +1,15 @@
-interface Player {
-  id: string;
-  name: string;
-  str: number;
-}
+import { Player, LogEntry, GameContext, WorldState, NPC, Item } from '../types';
 
-interface LogEntry {
-  player: string;
-  action: string;
-  roll: number;
-  success: boolean;
-}
-
-interface GameContext {
-  currentScene: string;
-  lastAIResponse: string;
-  recentEvents: LogEntry[];
-  currentLocation: string;
-}
-
-export const worldState = {
+export const worldState: WorldState = {
     locations: {
       forge: {
         name: "Заброшенная кузница",
         desc: "Сумрак, запах ржавчины и углей.",
         connections: ["yard"],
-        npcs: [{ id: "guard1", name: "Страж кузни", hp: 12, hostile: true }],
-        items: [{ id: "key1", name: "Старый ключ", pickup: true }]
+        npcs: [{ id: "guard1", name: "Страж кузни", hp: 12, hostile: true }] as NPC[],
+        items: [{ id: "key1", name: "Старый ключ", type: "misc" }] as Item[]
       },
-      yard: { name: "Двор кузни", desc: "Разбитая телега", connections: ["forge"], npcs: [], items: [] }
+      yard: { name: "Двор кузни", desc: "Разбитая телега", connections: ["forge"], npcs: [] as NPC[], items: [] as Item[] }
     },
     players: {} as Record<string, Player>,
     log: [] as LogEntry[],

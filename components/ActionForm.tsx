@@ -1,9 +1,6 @@
 "use client";
 import { useState } from "react";
-
-interface ActionFormProps {
-  onSubmit: (text: string) => void;
-}
+import { ActionFormProps } from "../types";
 
 export default function ActionForm({ onSubmit }: ActionFormProps) {
   const [action, setAction] = useState("");

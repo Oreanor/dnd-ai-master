@@ -1,24 +1,7 @@
-"use client";
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import ActionForm from "./ActionForm";
-
-interface Player {
-  id: string;
-  name: string;
-  str: number;
-}
-
-interface GameRoomProps {
-  roomId: string;
-  player: Player;
-}
-
-interface Message {
-  type: "system" | "ai" | "player";
-  text: string;
-  playerName?: string;
-}
+import { Message, Player, GameRoomProps } from "../types";
 
 export default function GameRoom({ roomId, player }: GameRoomProps) {
   const socketRef = useRef<any>(null);
@@ -27,6 +10,7 @@ export default function GameRoom({ roomId, player }: GameRoomProps) {
   const [world, setWorld] = useState<any>({});
   const [connected, setConnected] = useState(false);
   const [players, setPlayers] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     console.log("Initializing socket connection...");
@@ -84,6 +68,14 @@ export default function GameRoom({ roomId, player }: GameRoomProps) {
       setConnected(false);
     });
 
+    socket.on("error", (data: { code: string; message: string; resetTime?: number }) => {
+      console.error("Socket error:", data);
+      setError(data.message);
+      
+      // Автоматически скрываем ошибку через 5 секунд
+      setTimeout(() => setError(null), 5000);
+    });
+
     return () => {
       console.log("Disconnecting socket...");
       socket.disconnect();
@@ -103,6 +95,15 @@ export default function GameRoom({ roomId, player }: GameRoomProps) {
 
   return (
     <div className="h-screen bg-gray-100 flex flex-col">
+      {error && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm font-medium">Ошибка: {error}</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="bg-white p-4 border-b flex-shrink-0">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Общая комната</h2>

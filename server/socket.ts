@@ -3,6 +3,9 @@ import http from "http";
 import { Server } from "socket.io";
 import { worldState } from "../lib/worldState";
 import { callAI, generateAIContext, generateWelcomeContext } from "../lib/ai";
+import { rateLimiters, getClientId, sendRateLimitError } from "../utils/rateLimiter";
+import { validators, ValidationError } from "../utils/validators";
+import { gameLogger } from "../utils/logger";
 
 const PORT = Number(process.env.SOCKET_PORT || 3001);
 const PATH = process.env.SOCKET_PATH || "/api/socket_io";
@@ -21,13 +24,29 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-  console.log("Игрок подключился", socket.id);
+  const clientId = getClientId(socket);
+  console.log("Игрок подключился", socket.id, "Client ID:", clientId);
 
-  socket.on("join_room", async ({ roomId, player }) => {
-    // Сохраняем socketId для последующего удаления
-    worldState.players[player.id] = { ...player, socketId: socket.id };
-    socket.join(roomId);
-    io.to(roomId).emit("system", { msg: `${player.name} вошёл в игру.` });
+  socket.on("join_room", async (data) => {
+    try {
+      // Проверяем rate limit
+      if (!rateLimiters.joinRoom.isAllowed(clientId)) {
+        const resetTime = rateLimiters.joinRoom.getResetTime(clientId);
+        sendRateLimitError(socket, rateLimiters.joinRoom.config.message, resetTime);
+        gameLogger.rateLimitHit(clientId, 'joinRoom');
+        return;
+      }
+
+      // Валидируем данные
+      const roomId = validators.roomId(data?.roomId, 'roomId');
+      const player = validators.player(data?.player, 'player');
+
+      // Сохраняем socketId для последующего удаления
+      worldState.players[player.id] = { ...player, socketId: socket.id };
+      socket.join(roomId);
+      
+      gameLogger.playerJoin(player.name, clientId);
+      io.to(roomId).emit("system", { msg: `${player.name} вошёл в игру.` });
     
     // Проверяем, нужно ли генерировать описание локации
     const playersInRoom = Object.values(worldState.players).length;
@@ -57,14 +76,40 @@ io.on("connection", (socket) => {
       // Для остальных игроков или при реконнекте просто отправляем обновленное состояние
       io.to(roomId).emit("game_update", { aiResponse: "", worldState });
     }
+    } catch (error: any) {
+      if (error instanceof ValidationError) {
+        gameLogger.validationError(error.message, clientId);
+        socket.emit("error", { code: "VALIDATION_ERROR", message: error.message });
+      } else {
+        gameLogger.socketError(error?.message || error, clientId);
+        socket.emit("error", { code: "INTERNAL_ERROR", message: "Произошла ошибка сервера" });
+      }
+    }
   });
 
-  socket.on("player_action", async ({ roomId, playerId, action }) => {
+  socket.on("player_action", async (data) => {
     try {
+      // Проверяем rate limit
+      if (!rateLimiters.playerAction.isAllowed(clientId)) {
+        const resetTime = rateLimiters.playerAction.getResetTime(clientId);
+        sendRateLimitError(socket, rateLimiters.playerAction.config.message, resetTime);
+        gameLogger.rateLimitHit(clientId, 'playerAction');
+        return;
+      }
+
+      // Валидируем данные
+      const roomId = validators.roomId(data?.roomId, 'roomId');
+      const playerId = validators.playerId(data?.playerId, 'playerId');
+      const action = validators.playerAction(data?.action, 'action');
+
       const player = worldState.players[playerId];
+      if (!player) {
+        socket.emit("error", { code: "PLAYER_NOT_FOUND", message: "Игрок не найден" });
+        return;
+      }
 
       // Отправляем команду игрока всем в комнате СРАЗУ
-      console.log(`[SERVER] Sending player_message: ${player.name} - ${action}`);
+      gameLogger.playerAction(player.name, action, clientId);
       io.to(roomId).emit("player_message", { 
         playerName: player.name, 
         action: action 
@@ -87,9 +132,19 @@ io.on("connection", (socket) => {
         worldState.context.recentEvents = worldState.context.recentEvents.slice(-5);
       }
 
+      // Проверяем rate limit для AI запросов
+      if (!rateLimiters.aiRequest.isAllowed(clientId)) {
+        const resetTime = rateLimiters.aiRequest.getResetTime(clientId);
+        sendRateLimitError(socket, rateLimiters.aiRequest.config.message, resetTime);
+        gameLogger.rateLimitHit(clientId, 'aiRequest');
+        return;
+      }
+
       // Генерируем контекст для AI
       const prompt = generateAIContext(player.name, action, worldState);
       const aiResponse = await callAI(prompt);
+      
+      gameLogger.aiResponse(aiResponse.length, clientId);
       
       // Обновляем контекст с ответом AI
       if (aiResponse && aiResponse.trim()) {
@@ -106,8 +161,13 @@ io.on("connection", (socket) => {
         io.to(roomId).emit("game_update", { aiResponse: "", worldState });
       }
     } catch (error: any) {
-      console.error("[socket] player_action failed:", error?.message || error);
-      io.to(roomId).emit("game_update", { aiResponse: "AI error. Fallback used.", worldState });
+      if (error instanceof ValidationError) {
+        gameLogger.validationError(error.message, clientId);
+        socket.emit("error", { code: "VALIDATION_ERROR", message: error.message });
+      } else {
+        gameLogger.socketError(error?.message || error, clientId);
+        socket.emit("error", { code: "INTERNAL_ERROR", message: "Произошла ошибка сервера" });
+      }
     }
   });
 
@@ -116,6 +176,7 @@ io.on("connection", (socket) => {
     // Находим и удаляем игрока из worldState
     const playerToRemove = Object.values(worldState.players).find((p: any) => p.socketId === socket.id);
     if (playerToRemove) {
+      gameLogger.playerLeave(playerToRemove.name, clientId);
       delete worldState.players[playerToRemove.id];
       
       // Проверяем, остались ли игроки в комнате
