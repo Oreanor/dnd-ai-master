@@ -10,11 +10,10 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@auth/nextjs": "^0.0.0-380f8d56",
+    "next-auth": "^4.24.11",
     "cohere-ai": "^7.19.0",
     "dotenv": "^16.4.5",
     "next": "16.0.0",
-    "next-auth": "^4.24.11",
     "openai": "^6.7.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
