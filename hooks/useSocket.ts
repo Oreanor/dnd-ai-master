@@ -27,8 +27,6 @@ export function useSocket({ roomId, player }: UseSocketProps): UseSocketReturn {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log("Initializing socket connection...");
-    
     const socket = io(SOCKET_CONFIG.url, {
       path: SOCKET_CONFIG.path,
       transports: [...SOCKET_CONFIG.options.transports],
@@ -46,20 +44,14 @@ export function useSocket({ roomId, player }: UseSocketProps): UseSocketReturn {
 
     // Обработчики событий
     socket.on("system", (data: { msg: string }) => {
-      console.log("System message received:", data);
       setMessages(prev => [...prev, { type: "system", text: data.msg }]);
     });
 
     socket.on("player_message", ({ playerName, action }: { playerName: string; action: string }) => {
-      console.log("Player message received:", { playerName, action });
       setMessages(prev => [...prev, { type: "player", text: action, playerName }]);
     });
     
     socket.on("game_update", ({ aiResponse, worldState }: { aiResponse: string; worldState: WorldState }) => {
-      console.log("Game update received:", { aiResponse, worldState });
-      console.log("AI Response length:", aiResponse.length);
-      console.log("AI Response preview:", aiResponse.substring(0, 200) + "...");
-      
       // Добавляем ответ DND Master только если он не пустой
       if (aiResponse && aiResponse.trim()) {
         setMessages(prev => [...prev, { type: "ai", text: aiResponse }]);
@@ -70,22 +62,20 @@ export function useSocket({ roomId, player }: UseSocketProps): UseSocketReturn {
     });
 
     socket.on("connect", () => {
-      console.log("Connected to server");
       setConnected(true);
+      setError(null); // Clear any previous errors on successful connection
     });
 
     socket.on("disconnect", () => {
-      console.log("Disconnected from server");
       setConnected(false);
     });
 
     socket.on("connect_error", (error) => {
-      console.error("Connection error:", error);
       setConnected(false);
+      setError("Connection failed. Please try again.");
     });
 
     socket.on("error", (data: { code: string; message: string; resetTime?: number }) => {
-      console.error("Socket error:", data);
       setError(data.message);
       
       // Автоматически скрываем ошибку через заданное время
@@ -93,14 +83,16 @@ export function useSocket({ roomId, player }: UseSocketProps): UseSocketReturn {
     });
 
     return () => {
-      console.log("Disconnecting socket...");
-      socket.disconnect();
+      // Cleanup socket connection
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
   }, [roomId, player]);
 
   const sendAction = (text: string) => {
     if (socketRef.current) {
-      console.log(`[CLIENT] Sending action: ${text}`);
       socketRef.current.emit("player_action", { roomId, playerId: player.id, action: text });
     }
   };

@@ -1,31 +1,27 @@
 // Простая валидация без внешних зависимостей
-export class ValidationError extends Error {
-  constructor(message: string, public field?: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
+import { CONFIG, VALIDATION_PATTERNS, ERROR_MESSAGES } from '../config/constants';
+import { ValidationError } from '../lib/errors';
 
 export const validators = {
   // Валидация строки
   string: (value: unknown, field: string, minLength = 1, maxLength = 1000): string => {
     if (typeof value !== 'string') {
-      throw new ValidationError(`${field} должно быть строкой`, field);
+      throw new ValidationError(`${field} ${ERROR_MESSAGES.VALIDATION.REQUIRED}`, field);
     }
     if (value.length < minLength) {
-      throw new ValidationError(`${field} слишком короткое (минимум ${minLength} символов)`, field);
+      throw new ValidationError(`${field} ${ERROR_MESSAGES.VALIDATION.TOO_SHORT} (минимум ${minLength} символов)`, field);
     }
     if (value.length > maxLength) {
-      throw new ValidationError(`${field} слишком длинное (максимум ${maxLength} символов)`, field);
+      throw new ValidationError(`${field} ${ERROR_MESSAGES.VALIDATION.TOO_LONG} (максимум ${maxLength} символов)`, field);
     }
     return value.trim();
   },
 
   // Валидация ID игрока
   playerId: (value: unknown, field = 'playerId'): string => {
-    const id = validators.string(value, field, 1, 50);
-    if (!/^[a-zA-Z0-9@._-]+$/.test(id)) {
-      throw new ValidationError(`${field} содержит недопустимые символы`, field);
+    const id = validators.string(value, field, 1, CONFIG.MAX_PLAYER_NAME_LENGTH);
+    if (!VALIDATION_PATTERNS.PLAYER_ID.test(id)) {
+      throw new ValidationError(`${field} ${ERROR_MESSAGES.VALIDATION.INVALID_FORMAT}`, field);
     }
     return id;
   },
@@ -33,28 +29,20 @@ export const validators = {
   // Валидация ID комнаты
   roomId: (value: unknown, field = 'roomId'): string => {
     const id = validators.string(value, field, 1, 50);
-    if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-      throw new ValidationError(`${field} содержит недопустимые символы`, field);
+    if (!VALIDATION_PATTERNS.ROOM_ID.test(id)) {
+      throw new ValidationError(`${field} ${ERROR_MESSAGES.VALIDATION.INVALID_FORMAT}`, field);
     }
     return id;
   },
 
   // Валидация действия игрока
   playerAction: (value: unknown, field = 'action'): string => {
-    const action = validators.string(value, field, 1, 500);
+    const action = validators.string(value, field, 1, CONFIG.MAX_PLAYER_ACTION_LENGTH);
     
     // Проверяем на потенциально опасные команды
-    const dangerousPatterns = [
-      /<script/i,
-      /javascript:/i,
-      /on\w+\s*=/i,
-      /eval\s*\(/i,
-      /function\s*\(/i
-    ];
-    
-    for (const pattern of dangerousPatterns) {
+    for (const pattern of VALIDATION_PATTERNS.DANGEROUS_PATTERNS) {
       if (pattern.test(action)) {
-        throw new ValidationError(`${field} содержит недопустимое содержимое`, field);
+        throw new ValidationError(`${field} ${ERROR_MESSAGES.VALIDATION.DANGEROUS_CONTENT}`, field);
       }
     }
     

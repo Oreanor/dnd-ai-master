@@ -4,8 +4,10 @@ import { Server } from "socket.io";
 import { worldState } from "../lib/worldState";
 import { callAI, generateAIContext, generateWelcomeContext } from "../lib/ai";
 import { rateLimiters, getClientId, sendRateLimitError } from "../utils/rateLimiter";
-import { validators, ValidationError } from "../utils/validators";
+import { validators } from "../utils/validators";
 import { gameLogger } from "../utils/logger";
+import { ErrorHandler, ValidationError, AIError, SocketError } from "../lib/errors";
+import { CONFIG } from "../config/constants";
 
 const PORT = Number(process.env.SOCKET_PORT || 3001);
 
@@ -74,12 +76,15 @@ io.on("connection", (socket) => {
       // Для остальных игроков или при реконнекте просто отправляем обновленное состояние
       io.to(roomId).emit("game_update", { aiResponse: "", worldState });
     }
-    } catch (error: any) {
-      if (error instanceof ValidationError) {
-        gameLogger.validationError(error.message, clientId);
-        socket.emit("error", { code: "VALIDATION_ERROR", message: error.message });
+    } catch (error: unknown) {
+      const appError = ErrorHandler.handle(error, 'join_room');
+      ErrorHandler.logError(appError, `Client: ${clientId}`);
+      
+      if (appError instanceof ValidationError) {
+        gameLogger.validationError(appError.message, clientId);
+        socket.emit("error", { code: "VALIDATION_ERROR", message: appError.message });
       } else {
-        gameLogger.socketError(error?.message || error, clientId);
+        gameLogger.socketError(appError.message, clientId);
         socket.emit("error", { code: "INTERNAL_ERROR", message: "Произошла ошибка сервера" });
       }
     }
@@ -140,9 +145,22 @@ io.on("connection", (socket) => {
 
       // Генерируем контекст для AI
       const prompt = generateAIContext(player.name, action, worldState);
-      const aiResponse = await callAI(prompt);
+      let aiResponse = "";
       
-      gameLogger.aiResponse(aiResponse.length, clientId);
+      try {
+        aiResponse = await callAI(prompt);
+        gameLogger.aiResponse(aiResponse.length, clientId);
+      } catch (aiError: unknown) {
+        const appError = ErrorHandler.handle(aiError, 'ai_call');
+        ErrorHandler.logError(appError, `Client: ${clientId}`);
+        
+        if (appError instanceof AIError) {
+          gameLogger.socketError(`AI Error: ${appError.message}`, clientId);
+          // Continue with empty response instead of failing completely
+        } else {
+          gameLogger.socketError(`Unexpected AI Error: ${appError.message}`, clientId);
+        }
+      }
       
       // Обновляем контекст с ответом AI
       if (aiResponse && aiResponse.trim()) {
@@ -158,12 +176,15 @@ io.on("connection", (socket) => {
         // Если DND Master не ответил, отправляем только обновление состояния
         io.to(roomId).emit("game_update", { aiResponse: "", worldState });
       }
-    } catch (error: any) {
-      if (error instanceof ValidationError) {
-        gameLogger.validationError(error.message, clientId);
-        socket.emit("error", { code: "VALIDATION_ERROR", message: error.message });
+    } catch (error: unknown) {
+      const appError = ErrorHandler.handle(error, 'join_room');
+      ErrorHandler.logError(appError, `Client: ${clientId}`);
+      
+      if (appError instanceof ValidationError) {
+        gameLogger.validationError(appError.message, clientId);
+        socket.emit("error", { code: "VALIDATION_ERROR", message: appError.message });
       } else {
-        gameLogger.socketError(error?.message || error, clientId);
+        gameLogger.socketError(appError.message, clientId);
         socket.emit("error", { code: "INTERNAL_ERROR", message: "Произошла ошибка сервера" });
       }
     }

@@ -1,3 +1,5 @@
+import { CONFIG } from '../config/constants';
+
 export enum LogLevel {
   ERROR = 'error',
   WARN = 'warn',
@@ -15,7 +17,32 @@ interface LogEntry {
 
 class Logger {
   private logs: LogEntry[] = [];
-  private maxLogs = 1000; // Максимальное количество логов в памяти
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private readonly maxLogs = CONFIG.MAX_LOGS;
+  private readonly retentionDays = CONFIG.LOG_RETENTION_DAYS;
+
+  constructor() {
+    this.startCleanupInterval();
+  }
+
+  private startCleanupInterval(): void {
+    // Cleanup logs every hour
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupOldLogs();
+    }, 60 * 60 * 1000);
+  }
+
+  private cleanupOldLogs(): void {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - this.retentionDays);
+    
+    this.logs = this.logs.filter(log => log.timestamp > cutoffDate);
+    
+    // Also limit by count
+    if (this.logs.length > this.maxLogs) {
+      this.logs = this.logs.slice(-this.maxLogs);
+    }
+  }
 
   private addLog(level: LogLevel, message: string, data?: any, clientId?: string): void {
     const entry: LogEntry = {
@@ -28,28 +55,30 @@ class Logger {
 
     this.logs.push(entry);
     
-    // Ограничиваем количество логов в памяти
+    // Immediate cleanup if we exceed max logs
     if (this.logs.length > this.maxLogs) {
       this.logs = this.logs.slice(-this.maxLogs);
     }
 
-    // Выводим в консоль
-    const timestamp = entry.timestamp.toISOString();
-    const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
-    
-    switch (level) {
-      case LogLevel.ERROR:
-        console.error(logMessage, data || '');
-        break;
-      case LogLevel.WARN:
-        console.warn(logMessage, data || '');
-        break;
-      case LogLevel.INFO:
-        console.info(logMessage, data || '');
-        break;
-      case LogLevel.DEBUG:
-        console.debug(logMessage, data || '');
-        break;
+    // Only log to console in development or for errors
+    if (CONFIG.NODE_ENV === 'development' || level === LogLevel.ERROR) {
+      const timestamp = entry.timestamp.toISOString();
+      const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+      
+      switch (level) {
+        case LogLevel.ERROR:
+          console.error(logMessage, data || '');
+          break;
+        case LogLevel.WARN:
+          console.warn(logMessage, data || '');
+          break;
+        case LogLevel.INFO:
+          console.info(logMessage, data || '');
+          break;
+        case LogLevel.DEBUG:
+          console.debug(logMessage, data || '');
+          break;
+      }
     }
   }
 
@@ -69,6 +98,32 @@ class Logger {
     this.addLog(LogLevel.DEBUG, message, data, clientId);
   }
 
+  // Cleanup method for graceful shutdown
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.logs = [];
+  }
+
+  // Get logs for debugging (only in development)
+  getLogs(level?: LogLevel, limit?: number): LogEntry[] {
+    if (CONFIG.NODE_ENV !== 'development') {
+      return [];
+    }
+    
+    let filteredLogs = this.logs;
+    if (level) {
+      filteredLogs = filteredLogs.filter(log => log.level === level);
+    }
+    
+    if (limit) {
+      filteredLogs = filteredLogs.slice(-limit);
+    }
+    
+    return filteredLogs;
+  }
 }
 
 // Создаем глобальный экземпляр логгера
@@ -104,3 +159,14 @@ export const gameLogger = {
     logger.error(`Socket error: ${error}`, { error }, clientId);
   }
 };
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  logger.destroy();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  logger.destroy();
+  process.exit(0);
+});

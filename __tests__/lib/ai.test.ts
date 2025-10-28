@@ -124,43 +124,32 @@ describe('AI Module', () => {
   })
 
   describe('callAI', () => {
-    it('should return fallback when API key is not set', async () => {
+    it('should throw error when API key is not set', async () => {
       process.env.COHERE_API_KEY = ''
       
-      const result = await callAI('test prompt')
-      
-      expect(result).toBe('AI temporarily unavailable. Fallback narrative. [All models unavailable]')
+      await expect(callAI('test prompt')).rejects.toThrow('All AI models unavailable')
     })
 
-    it('should return fallback when cohere client is null', async () => {
+    it('should throw error when cohere client is null', async () => {
       // Mock the cohere client to be null
       jest.doMock('cohere-ai', () => ({
         CohereClient: jest.fn(() => null)
       }))
 
-      const result = await callAI('test prompt')
-      
-      expect(result).toBe('AI temporarily unavailable. Fallback narrative. [All models unavailable]')
+      await expect(callAI('test prompt')).rejects.toThrow('All AI models unavailable')
     })
 
-    it('should return a string response', async () => {
-      const result = await callAI('test prompt')
-      
-      expect(typeof result).toBe('string')
-      expect(result.length).toBeGreaterThan(0)
+    it('should throw error when no models available', async () => {
+      await expect(callAI('test prompt')).rejects.toThrow('All AI models unavailable')
     })
 
     it('should handle empty prompt', async () => {
-      const result = await callAI('')
-      
-      expect(typeof result).toBe('string')
+      await expect(callAI('')).rejects.toThrow('All AI models unavailable')
     })
 
     it('should handle long prompt', async () => {
       const longPrompt = 'A'.repeat(1000)
-      const result = await callAI(longPrompt)
-      
-      expect(typeof result).toBe('string')
+      await expect(callAI(longPrompt)).rejects.toThrow('All AI models unavailable')
     })
   })
 })

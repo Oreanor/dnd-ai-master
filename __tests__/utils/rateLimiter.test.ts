@@ -128,7 +128,7 @@ describe('rateLimiters', () => {
     it('should have correct configuration', () => {
       expect(rateLimiters.playerAction.config.windowMs).toBe(15 * 1000)
       expect(rateLimiters.playerAction.config.maxRequests).toBe(5)
-      expect(rateLimiters.playerAction.config.message).toBe('Слишком много действий. Подождите немного.')
+      expect(rateLimiters.playerAction.config.message).toBe('Слишком много действий. Попробуйте позже.')
     })
   })
 
@@ -136,7 +136,7 @@ describe('rateLimiters', () => {
     it('should have correct configuration', () => {
       expect(rateLimiters.joinRoom.config.windowMs).toBe(60 * 1000)
       expect(rateLimiters.joinRoom.config.maxRequests).toBe(3)
-      expect(rateLimiters.joinRoom.config.message).toBe('Слишком много попыток подключения. Подождите минуту.')
+      expect(rateLimiters.joinRoom.config.message).toBe('Слишком много попыток подключения. Попробуйте позже.')
     })
   })
 
@@ -144,7 +144,7 @@ describe('rateLimiters', () => {
     it('should have correct configuration', () => {
       expect(rateLimiters.aiRequest.config.windowMs).toBe(60 * 1000)
       expect(rateLimiters.aiRequest.config.maxRequests).toBe(10)
-      expect(rateLimiters.aiRequest.config.message).toBe('Превышен лимит AI запросов. Подождите минуту.')
+      expect(rateLimiters.aiRequest.config.message).toBe('Слишком много запросов к AI. Попробуйте позже.')
     })
   })
 })

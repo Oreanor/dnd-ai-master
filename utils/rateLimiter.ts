@@ -1,4 +1,5 @@
 import { Socket } from 'socket.io';
+import { CONFIG, ERROR_MESSAGES } from '../config/constants';
 
 interface RateLimitConfig {
   windowMs: number;
@@ -16,9 +17,27 @@ const clientLimits = new Map<string, ClientRateLimit>();
 
 export class RateLimiter {
   public config: RateLimitConfig;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(config: RateLimitConfig) {
     this.config = config;
+    this.startCleanup();
+  }
+
+  private startCleanup(): void {
+    // Очищаем старые записи каждые 5 минут
+    this.cleanupInterval = setInterval(() => {
+      this.cleanup();
+    }, 5 * 60 * 1000);
+  }
+
+  private cleanup(): void {
+    const now = Date.now();
+    for (const [clientId, limit] of clientLimits.entries()) {
+      if (now > limit.resetTime) {
+        clientLimits.delete(clientId);
+      }
+    }
   }
 
   isAllowed(clientId: string): boolean {
@@ -55,29 +74,37 @@ export class RateLimiter {
     const limit = clientLimits.get(clientId);
     return limit ? limit.resetTime : Date.now() + this.config.windowMs;
   }
+
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    clientLimits.clear();
+  }
 }
 
-// Предустановленные конфигурации rate limiting
+// Предустановленные конфигурации rate limiting с константами
 export const rateLimiters = {
-  // Лимит для действий игрока (5 действий за 15 секунд)
+  // Лимит для действий игрока
   playerAction: new RateLimiter({
-    windowMs: 15 * 1000, // 15 секунд
-    maxRequests: 5,
-    message: 'Слишком много действий. Подождите немного.'
+    windowMs: CONFIG.RATE_LIMITS.PLAYER_ACTION.window,
+    maxRequests: CONFIG.RATE_LIMITS.PLAYER_ACTION.requests,
+    message: ERROR_MESSAGES.RATE_LIMIT.PLAYER_ACTION
   }),
 
-  // Лимит для подключения к комнате (3 попытки за минуту)
+  // Лимит для подключения к комнате
   joinRoom: new RateLimiter({
-    windowMs: 60 * 1000, // 1 минута
-    maxRequests: 3,
-    message: 'Слишком много попыток подключения. Подождите минуту.'
+    windowMs: CONFIG.RATE_LIMITS.ROOM_JOIN.window,
+    maxRequests: CONFIG.RATE_LIMITS.ROOM_JOIN.requests,
+    message: ERROR_MESSAGES.RATE_LIMIT.ROOM_JOIN
   }),
 
-  // Лимит для AI запросов (10 запросов за минуту)
+  // Лимит для AI запросов
   aiRequest: new RateLimiter({
-    windowMs: 60 * 1000, // 1 минута
-    maxRequests: 10,
-    message: 'Превышен лимит AI запросов. Подождите минуту.'
+    windowMs: CONFIG.RATE_LIMITS.AI_REQUEST.window,
+    maxRequests: CONFIG.RATE_LIMITS.AI_REQUEST.requests,
+    message: ERROR_MESSAGES.RATE_LIMIT.AI_REQUEST
   })
 };
 

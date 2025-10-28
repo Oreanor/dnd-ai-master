@@ -1,5 +1,7 @@
 import "dotenv/config";
 import { CohereClient } from "cohere-ai";
+import { CONFIG } from '../config/constants';
+import { AIError } from './errors';
 
 const cohereApiKey = process.env.COHERE_API_KEY;
 const cohere = cohereApiKey ? new CohereClient({ token: cohereApiKey }) : null;
@@ -29,10 +31,8 @@ function extractSceneSection(text: string): string {
   const re = /([\s\S]*?)\*\*JSON-предложение для мира:\*\*/;
   const match = re.exec(text);
   if (match && typeof match[1] === "string") {
-    console.log("[AI] Found JSON marker, extracted text length:", match[1].trim().length);
     return match[1].trim();
   }
-  console.log("[AI] No JSON marker found, returning full text length:", text.length);
   return text;
 }
 
@@ -74,7 +74,7 @@ ${recentEventsText}
   `.trim();
 }
 
-function truncateResponse(text: string, maxLength: number = 500): string {
+function truncateResponse(text: string, maxLength: number = CONFIG.AI_MAX_RESPONSE_LENGTH): string {
   if (text.length <= maxLength) {
     return text;
   }
@@ -96,8 +96,7 @@ function truncateResponse(text: string, maxLength: number = 500): string {
 
 export async function callAI(prompt: string): Promise<string> {
   if (!cohere) {
-    console.warn("[AI] COHERE_API_KEY is not set; returning fallback text.");
-    return "AI temporarily unavailable. Fallback narrative.";
+    throw new AIError("COHERE_API_KEY is not set");
   }
 
   try {
@@ -112,23 +111,18 @@ export async function callAI(prompt: string): Promise<string> {
       "command-light"
     ].filter(Boolean))) as string[];
 
-    
-
     for (const model of candidates) {
       try {
         const response = await cohere.chat({ 
           model, 
           message: prompt,
-          maxTokens: 200, // Ограничиваем количество токенов
-          temperature: 0.7 // Добавляем немного креативности, но не слишком много
+          maxTokens: CONFIG.MAX_TOKENS,
+          temperature: CONFIG.AI_TEMPERATURE
         });
         const raw = extractTextFromCohereResponse(response);
         const text = extractSceneSection(raw);
-        console.log("[AI] Extracted text length:", text.length);
         if (text) {
-          const truncated = truncateResponse(text);
-          console.log("[AI] Truncated text length:", truncated.length);
-          return truncated;
+          return truncateResponse(text);
         }
       } catch (err: unknown) {
         let status: number | string | undefined;
@@ -142,19 +136,20 @@ export async function callAI(prompt: string): Promise<string> {
         }
         // If model not found/removed, try next candidate
         if (status === 404 || /not\s*found|removed/i.test(msg)) {
-          console.warn(`[AI] model ${model} unavailable, trying next.`, msg);
           continue;
         }
         // For rate limits/transient errors, bubble to outer catch
         throw err;
       }
     }
-    return "AI temporarily unavailable. Fallback narrative. [All models unavailable]";
+    throw new AIError("All AI models unavailable");
   } catch (err: unknown) {
+    if (err instanceof AIError) {
+      throw err;
+    }
     const msg = (err && typeof err === "object" && typeof (err as { message?: unknown }).message === "string")
       ? (err as { message: string }).message
       : String(err);
-    console.error("[AI] call failed:", msg);
-    return `AI temporarily unavailable. Fallback narrative. [${msg}]`;
+    throw new AIError(`AI call failed: ${msg}`, err as Error);
   }
 }
