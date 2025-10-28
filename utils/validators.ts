@@ -95,19 +95,3 @@ export const validators = {
   }
 };
 
-// Утилита для безопасной обработки ошибок валидации
-export const safeValidate = <T>(
-  validator: (value: unknown) => T,
-  value: unknown,
-  defaultValue?: T
-): T | null => {
-  try {
-    return validator(value);
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      console.warn('Validation error:', error.message);
-      return defaultValue || null;
-    }
-    throw error;
-  }
-};

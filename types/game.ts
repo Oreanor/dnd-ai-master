@@ -13,7 +13,6 @@ export interface Item {
   name: string;
   description?: string;
   type: 'weapon' | 'armor' | 'consumable' | 'misc';
-  value?: number;
 }
 
 export interface NPC {
@@ -21,7 +20,6 @@ export interface NPC {
   name: string;
   hp: number;
   hostile: boolean;
-  description?: string;
 }
 
 export interface Location {
@@ -37,7 +35,6 @@ export interface LogEntry {
   action: string;
   roll: number;
   success: boolean;
-  timestamp?: Date;
 }
 
 export interface GameContext {
@@ -59,7 +56,6 @@ export interface Message {
   type: 'system' | 'ai' | 'player';
   text: string;
   playerName?: string;
-  timestamp?: Date;
 }
 
 export interface GameRoomProps {

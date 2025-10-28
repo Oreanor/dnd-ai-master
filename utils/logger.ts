@@ -69,23 +69,6 @@ class Logger {
     this.addLog(LogLevel.DEBUG, message, data, clientId);
   }
 
-  // Получить логи по уровню
-  getLogs(level?: LogLevel): LogEntry[] {
-    if (level) {
-      return this.logs.filter(log => log.level === level);
-    }
-    return [...this.logs];
-  }
-
-  // Получить логи для конкретного клиента
-  getClientLogs(clientId: string): LogEntry[] {
-    return this.logs.filter(log => log.clientId === clientId);
-  }
-
-  // Очистить логи
-  clear(): void {
-    this.logs = [];
-  }
 }
 
 // Создаем глобальный экземпляр логгера

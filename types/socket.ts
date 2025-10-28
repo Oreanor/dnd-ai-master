@@ -24,5 +24,3 @@ export interface SocketServerEvents extends SocketEvents {
   disconnect: (reason: string) => void;
 }
 
-// Re-export types from game.ts for convenience
-export type { Player, Item, NPC, Location, LogEntry, GameContext, WorldState, Message, GameRoomProps, ActionFormProps } from './game';

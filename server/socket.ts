@@ -8,8 +8,6 @@ import { validators, ValidationError } from "../utils/validators";
 import { gameLogger } from "../utils/logger";
 
 const PORT = Number(process.env.SOCKET_PORT || 3001);
-const PATH = process.env.SOCKET_PATH || "/api/socket_io";
-const ORIGIN = process.env.SOCKET_CORS_ORIGIN || "*";
 
 // Create a dedicated HTTP server and attach socket.io to it
 const server = http.createServer((req, res) => {
@@ -19,8 +17,8 @@ const server = http.createServer((req, res) => {
 });
 
 const io = new Server(server, {
-  path: PATH,
-  cors: { origin: ORIGIN, methods: ["GET", "POST"] }
+  path: process.env.SOCKET_PATH || "/api/socket_io",
+  cors: { origin: process.env.SOCKET_CORS_ORIGIN || "*", methods: ["GET", "POST"] }
 });
 
 io.on("connection", (socket) => {
@@ -204,7 +202,7 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`[socket] listening on http://localhost:${PORT}${PATH}`);
+  console.log(`[socket] listening on http://localhost:${PORT}${process.env.SOCKET_PATH || "/api/socket_io"}`);
 });
 
 process.on("unhandledRejection", (reason) => {
