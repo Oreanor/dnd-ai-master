@@ -2,6 +2,9 @@
 import { CONFIG, VALIDATION_PATTERNS, ERROR_MESSAGES } from '../config/constants';
 import { ValidationError } from '../lib/errors';
 
+// Re-export ValidationError for backward compatibility
+export { ValidationError };
+
 export const validators = {
   // Валидация строки
   string: (value: unknown, field: string, minLength = 1, maxLength = 1000): string => {

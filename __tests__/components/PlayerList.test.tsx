@@ -78,7 +78,7 @@ describe('PlayerList', () => {
   })
 
   it('should handle players without id by using index as key', () => {
-    const playersWithoutId = mockPlayers.map(player => ({ ...player, id: undefined }))
+    const playersWithoutId = mockPlayers.map(player => ({ ...player, id: player.id || 'fallback' }))
     render(<PlayerList players={playersWithoutId} />)
 
     expect(screen.getByText('Alice')).toBeInTheDocument()

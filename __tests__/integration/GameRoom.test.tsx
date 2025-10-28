@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import GameRoom from '../../components/GameRoom'
-import { Player } from '../../types'
+import { Player, Message } from '../../types'
 
 // Mock the useSocket hook
 const mockUseSocket = {
@@ -13,10 +13,10 @@ const mockUseSocket = {
     connected: true,
   },
   connected: true,
-  messages: [],
+  messages: [] as Message[],
   world: null,
-  players: [],
-  error: null,
+  players: [] as Player[],
+  error: null as string | null,
   sendAction: jest.fn(),
 }
 
@@ -61,7 +61,7 @@ describe('GameRoom Integration', () => {
   })
 
   it('should display players when available', () => {
-    const players = [
+    const players: Player[] = [
       { id: 'p1', name: 'Alice', str: 10, dex: 12, hp: 20, inventory: [] },
       { id: 'p2', name: 'Bob', str: 14, dex: 8, hp: 18, inventory: [] },
     ]
@@ -75,7 +75,7 @@ describe('GameRoom Integration', () => {
   })
 
   it('should display messages when available', () => {
-    const messages = [
+    const messages: Message[] = [
       { type: 'system', text: 'Welcome to the game!' },
       { type: 'player', text: 'I attack the goblin', playerName: 'Alice' },
       { type: 'ai', text: 'The goblin dodges!' },

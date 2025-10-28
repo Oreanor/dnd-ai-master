@@ -1,151 +1,212 @@
-# D&D AI Master
+# 🎲 D&D AI Master
 
-Интерактивная ролевая игра Dungeons & Dragons с AI-мастером, построенная на Next.js и Socket.IO.
+A real-time multiplayer D&D game powered by AI, built with Next.js, Socket.IO, and Cohere AI.
 
-## 🎮 Описание
+## ✨ Features
 
-D&D AI Master - это веб-приложение для игры в D&D, где роль мастера игры выполняет искусственный интеллект. Игроки могут присоединяться к общей игровой комнате, выполнять действия и получать отзывчивые ответы от DND Master в реальном времени.
+- **Real-time multiplayer gameplay** with Socket.IO
+- **AI-powered game master** using Cohere AI
+- **Modern React architecture** with Next.js 16
+- **TypeScript** for type safety
+- **Comprehensive testing** with Jest and React Testing Library
+- **Docker containerization** for easy deployment
+- **CI/CD pipeline** with GitHub Actions
+- **Kubernetes support** for production scaling
 
-### Основные возможности:
-- 🔐 Аутентификация через Google
-- 🎲 Система бросков кубиков и проверок характеристик
-- 🤖 DND Master, генерирующий описания и реакции на действия игроков
-- 👥 Многопользовательская игра в реальном времени
-- 📱 Адаптивный интерфейс
+## 🚀 Quick Start
 
-## 🚀 Быстрый старт
+### Prerequisites
 
-### Предварительные требования
-- Node.js 18+ 
-- npm, yarn, pnpm или bun
-- API ключи для AI (OpenAI или Cohere)
+- Node.js 18+
+- Docker and Docker Compose
+- Git
 
-### Установка
+### Local Development
 
-1. Клонируйте репозиторий:
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd dnd-ai-master
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables:**
+   ```bash
+   cp env.example .env
+   # Edit .env with your configuration
+   ```
+
+4. **Start the development servers:**
+   ```bash
+   npm run dev
+   ```
+
+5. **Access the application:**
+   - Web App: http://localhost:3000
+   - Socket Server: http://localhost:3001
+
+### Docker Development
+
 ```bash
-git clone <repository-url>
-cd dnd-ai-master
+# Start with Docker Compose
+npm run docker:compose
+
+# Or build and run manually
+npm run docker:build
+npm run docker:run
 ```
 
-2. Установите зависимости:
+## 🧪 Testing
+
 ```bash
-npm install
-# или
-yarn install
-# или
-pnpm install
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+
+# Type checking
+npm run type-check
 ```
 
-3. Настройте переменные окружения:
-Создайте файл `.env.local` в корне проекта:
-```env
-# AI Configuration
-OPENAI_API_KEY=your_openai_api_key
-# или
-COHERE_API_KEY=your_cohere_api_key
+## 🚀 Deployment
 
-# NextAuth Configuration
-NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=your_nextauth_secret
+### Docker Deployment
 
-# Google OAuth (опционально)
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-# Socket Server Configuration
-SOCKET_PORT=3001
-SOCKET_PATH=/api/socket_io
-SOCKET_CORS_ORIGIN=http://localhost:3000
-```
-
-### Запуск приложения
-
-**Важно:** Приложение состоит из двух частей - веб-сервера и сокет-сервера. Оба должны быть запущены одновременно.
-
-1. **Запустите сокет-сервер** (в первом терминале):
 ```bash
-npm run socket
-# или
-yarn socket
-# или
-pnpm socket
+# Deploy to local environment
+npm run deploy
+
+# On Windows
+npm run deploy:windows
 ```
 
-2. **Запустите веб-сервер** (во втором терминале):
+### Kubernetes Deployment
+
 ```bash
-npm run dev
-# или
-yarn dev
-# или
-pnpm dev
-# или
-bun dev
+# Deploy to Kubernetes
+npm run k8s:deploy
+
+# Check deployment status
+npm run k8s:logs
+
+# Scale the application
+npm run k8s:scale
 ```
 
-3. Откройте [http://localhost:3000](http://localhost:3000) в браузере
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
-## 🎯 Как играть
+## 🔧 Configuration
 
-1. **Вход в игру**: Войдите через Google или играйте как гость
-2. **Создание персонажа**: Система автоматически создаст персонажа с базовыми характеристиками
-3. **Выполнение действий**: Вводите действия в текстовом поле (например, "атакую стража", "осматриваю комнату")
-4. **DND Master**: Мастер игры опишет результат ваших действий и предложит варианты развития сюжета
+### Environment Variables
 
-## 🛠 Технологии
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NODE_ENV` | Environment | `development` |
+| `COHERE_API_KEY` | AI API key | Required |
+| `NEXTAUTH_SECRET` | Auth secret | Required |
+| `SOCKET_PORT` | Socket server port | `3001` |
+| `REDIS_URL` | Redis connection | Optional |
+| `DATABASE_URL` | PostgreSQL connection | Optional |
 
-- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
-- **Backend**: Socket.IO для real-time коммуникации
-- **AI**: OpenAI GPT или Cohere для генерации контента
-- **Аутентификация**: NextAuth.js с Google OAuth
-- **Стилизация**: Tailwind CSS
+See [env.example](./env.example) for all available options.
 
-## 📁 Структура проекта
+## 🏗️ Architecture
 
 ```
-dnd-ai-master/
-├── app/                    # Next.js App Router
-│   ├── api/               # API маршруты
-│   │   ├── auth/          # NextAuth конфигурация
-│   │   └── socket/        # Socket.IO endpoint
-│   ├── globals.css        # Глобальные стили
-│   ├── layout.tsx         # Корневой layout
-│   └── page.tsx           # Главная страница
-├── components/            # React компоненты
-│   ├── ActionForm.tsx     # Форма для действий игрока
-│   ├── GameRoom.tsx       # Основная игровая комната
-│   └── Providers.tsx      # Провайдеры контекста
-├── lib/                   # Утилиты и конфигурация
-│   ├── ai.ts             # AI интеграция
-│   └── worldState.ts      # Состояние игрового мира
-├── server/               # Socket сервер
-│   └── socket.ts         # Основной socket сервер
-└── public/               # Статические файлы
+├── app/                 # Next.js app directory
+├── components/          # React components
+├── hooks/              # Custom React hooks
+├── lib/                # Core business logic
+├── server/             # Socket.IO server
+├── utils/              # Utility functions
+├── config/             # Configuration constants
+├── types/              # TypeScript type definitions
+├── k8s/                # Kubernetes manifests
+├── scripts/            # Deployment scripts
+└── __tests__/          # Test files
 ```
 
-## 🔧 Доступные скрипты
+## 🔄 CI/CD Pipeline
 
-- `npm run dev` - Запуск Next.js в режиме разработки
-- `npm run socket` - Запуск Socket.IO сервера
-- `npm run build` - Сборка для продакшена
-- `npm run start` - Запуск продакшен сборки
-- `npm run lint` - Проверка кода линтером
+The project includes a comprehensive CI/CD pipeline with GitHub Actions:
 
-## 🚨 Важные замечания
+- **Pull Request**: Runs tests, linting, and type checking
+- **Push to develop**: Deploys to staging environment
+- **Push to main**: Deploys to production with security scans
 
-- **Сокет-сервер обязателен**: Без запущенного сокет-сервера игра не будет работать
-- **API ключи**: Убедитесь, что настроили хотя бы один AI провайдер
-- **Порт 3001**: Сокет-сервер по умолчанию запускается на порту 3001
-- **CORS**: Настройте CORS для продакшена в переменных окружения
+### Pipeline Features
 
-## 🤝 Вклад в проект
+- ✅ Automated testing
+- ✅ Type checking
+- ✅ Security scanning with Snyk
+- ✅ Docker image building
+- ✅ Multi-environment deployment
+- ✅ Health checks
+- ✅ Notifications
 
-1. Форкните репозиторий
-2. Создайте ветку для новой функции (`git checkout -b feature/amazing-feature`)
-3. Зафиксируйте изменения (`git commit -m 'Add amazing feature'`)
-4. Отправьте в ветку (`git push origin feature/amazing-feature`)
-5. Откройте Pull Request
+## 📊 Monitoring
 
-## 📄 Лицензия
+### Health Checks
 
-Этот проект использует MIT лицензию.
+- **Application**: `GET /health`
+- **Socket**: `GET /api/socket_io/health`
+
+### Logs
+
+```bash
+# Docker Compose
+docker-compose logs -f
+
+# Kubernetes
+kubectl logs -f deployment/dnd-ai-master -n dnd-ai-master
+```
+
+## 🔐 Security
+
+- Input validation and sanitization
+- Rate limiting protection
+- CORS configuration
+- Security headers
+- Environment variable protection
+
+## 📈 Performance
+
+- Optimized Docker images
+- Redis caching support
+- Horizontal scaling with Kubernetes
+- Nginx reverse proxy
+- Gzip compression
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Run the test suite
+6. Submit a pull request
+
+## 📝 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For issues and questions:
+
+1. Check the [deployment guide](./DEPLOYMENT.md)
+2. Review the test files for usage examples
+3. Create an issue in the repository
+4. Contact the development team
+
+---
+
+**Happy Gaming! 🎲✨**
